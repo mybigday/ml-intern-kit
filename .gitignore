@@ -11,19 +11,28 @@ __pycache__/
 .ipynb_checkpoints/
 .DS_Store
 
-# Training artifacts
+# Training artifacts (matched at any depth — covers experiments/<x>/runs/, etc.)
 runs/
 outputs/
 checkpoints/
+checkpoint-*/
 wandb/
 trackio/
+logs/
 *.safetensors
 *.bin
+*.pt
+*.pth
+*.gguf
+*.onnx
+*.npz
 
 # Datasets / model caches
 .hf_cache/
-data/
 hf_home/
+hf_cache/
+data/
+models/
 
 # Notebooks
 *.ipynb_checkpoints

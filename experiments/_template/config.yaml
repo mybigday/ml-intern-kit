@@ -1,0 +1,62 @@
+# Per-experiment SFT recipe.
+# Inherits intent from configs/sft_default.yaml — edit only what you change.
+#
+# Tip: relative `output_dir` resolves against THIS file's directory.
+# So `runs/sft` here writes to experiments/<exp>/runs/sft/.
+#
+# Run:
+#   python scripts/train_sft.py --config experiments/<exp>/config.yaml
+# or smoke-test first:
+#   python scripts/train_sft.py --config experiments/<exp>/config.yaml \
+#       --max-steps 20 --max-samples 256
+
+model:
+  name_or_path: HuggingFaceTB/SmolLM2-360M-Instruct
+  attn_implementation: sdpa
+  torch_dtype: bfloat16
+
+dataset:
+  name: trl-lib/Capybara
+  split: train
+  text_field: messages
+  max_seq_length: 2048
+
+peft:
+  adapter: lora
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  bias: none
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+train:
+  output_dir: ./runs/sft                # ./ → resolves under THIS experiment's dir
+  num_train_epochs: 1
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 8
+  learning_rate: 2.0e-5
+  lr_scheduler_type: cosine
+  warmup_steps: 30
+  weight_decay: 0.0
+  optim: adamw_torch
+  bf16: true
+  fp16: false
+  gradient_checkpointing: true
+  packing: true                          # ROCm path auto-disables this
+  eval_strategy: "no"
+
+  disable_tqdm: true
+  logging_strategy: steps
+  logging_first_step: true
+  logging_steps: 10
+  report_to: [trackio]
+
+  push_to_hub: false
+  hub_model_id: null                     # e.g. "you/smollm2-360m-mything-sft"
+  hub_strategy: every_save
+  save_strategy: steps
+  save_steps: 200
+  save_total_limit: 2
+
+  seed: 42
+  data_seed: 42

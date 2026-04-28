@@ -131,6 +131,16 @@ def main(cfg: dict[str, Any], args: argparse.Namespace) -> None:
     train_cfg["report_to"] = _resolve_report_to(train_cfg.get("report_to", ["trackio"]))
     model_cfg, train_cfg = _platform_overrides(model_cfg, train_cfg)
 
+    # output_dir resolution:
+    #   absolute path           → use as-is
+    #   starts with ./ or ../   → resolve against the config file's directory
+    #                             (so experiments/<exp>/config.yaml writes to
+    #                             experiments/<exp>/runs/...)
+    #   anything else           → leave relative to CWD (project root convention)
+    raw_out = train_cfg.get("output_dir", "outputs/sft")
+    if raw_out.startswith("./") or raw_out.startswith("../"):
+        train_cfg["output_dir"] = str((args.config.resolve().parent / raw_out).resolve())
+
     if args.hub_model_id:
         train_cfg["hub_model_id"] = args.hub_model_id
         train_cfg["push_to_hub"] = True
