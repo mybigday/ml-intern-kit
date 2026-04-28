@@ -55,10 +55,17 @@ def _resolve_report_to(report_to: list[str]) -> list[str]:
 def _platform_overrides(model_cfg: dict, train_cfg: dict) -> tuple[dict, dict]:
     """Adjust dtype / attn_impl / optim / precision flags for the active backend.
 
-    - CUDA / ROCm Ampere+: keep user choice (typically bf16 + sdpa or flash-attn-2).
-    - macOS MPS:           force fp16 (bf16 is gimped on MPS), drop flash-attn-2,
-                           force adamw_torch (bitsandbytes unavailable).
-    - CPU:                 force fp32, drop flash-attn-2, adamw_torch.
+    - CUDA Ampere+: keep user choice (typically bf16 + sdpa or flash-attn-2).
+    - ROCm:         force `attn_implementation="sdpa"` and enable
+                    `TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1` so SDPA picks
+                    the AOTriton flash kernel (~20x faster than math fallback
+                    on gfx1151). HF Transformers' `flash_attention_2` backend
+                    imports the upstream `flash_attn` package — that wheel is
+                    CUDA-only and the ROCm fork doesn't list gfx1151. The
+                    AOTriton SDPA flash backend is the working path.
+    - macOS MPS:    force fp16 (bf16 is gimped on MPS), drop flash-attn-2,
+                    force adamw_torch (bitsandbytes unavailable).
+    - CPU:          force fp32, drop flash-attn-2, adamw_torch.
     """
     import torch
 
@@ -72,13 +79,20 @@ def _platform_overrides(model_cfg: dict, train_cfg: dict) -> tuple[dict, dict]:
         return m, t  # pristine path
 
     if is_rocm:
-        # ROCm: bf16 OK on MI200+; flash-attn upstream is CUDA-only.
+        os.environ.setdefault("TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL", "1")
         if m.get("attn_implementation") == "flash_attention_2":
-            print("[train_sft] ROCm: flash_attention_2 unsupported, falling back to sdpa")
+            print("[train_sft] ROCm: flash_attention_2 unsupported (CUDA-only PyPI wheel); "
+                  "using sdpa with AOTriton flash backend")
             m["attn_implementation"] = "sdpa"
         if t.get("optim") == "adamw_8bit":
             print("[train_sft] ROCm: bitsandbytes adamw_8bit unsupported, using adamw_torch")
             t["optim"] = "adamw_torch"
+        if t.get("packing"):
+            # TRL 1.3+ warns that packing relies on FA2-varlen to avoid
+            # cross-sample contamination. With AOTriton sdpa we don't have
+            # varlen — disable packing rather than risk silent label leakage.
+            print("[train_sft] ROCm: disabling packing (FA2-varlen unavailable on AOTriton sdpa)")
+            t["packing"] = False
         return m, t
 
     if has_mps:
@@ -130,7 +144,7 @@ def main(cfg: dict[str, Any], args: argparse.Namespace) -> None:
     dtype = getattr(torch, model_cfg.get("torch_dtype", "bfloat16"))
     model = AutoModelForCausalLM.from_pretrained(
         model_cfg["name_or_path"],
-        torch_dtype=dtype,
+        dtype=dtype,  # transformers 5.x renamed torch_dtype → dtype
         attn_implementation=model_cfg.get("attn_implementation", "sdpa"),
     )
 
@@ -159,7 +173,7 @@ def main(cfg: dict[str, Any], args: argparse.Namespace) -> None:
     if args.max_steps:
         sft_kwargs["max_steps"] = args.max_steps
         sft_kwargs.pop("num_train_epochs", None)
-    sft_kwargs["max_seq_length"] = data_cfg.get("max_seq_length", 2048)
+    sft_kwargs["max_length"] = data_cfg.get("max_seq_length", 2048)
     sft_kwargs["dataset_text_field"] = data_cfg.get("text_field", "text")
 
     sft_config = SFTConfig(**sft_kwargs)

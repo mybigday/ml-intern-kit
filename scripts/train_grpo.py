@@ -44,7 +44,7 @@ def main(cfg: dict[str, Any], args: argparse.Namespace) -> None:
 
     dtype = getattr(torch, model_cfg.get("torch_dtype", "bfloat16"))
     model = AutoModelForCausalLM.from_pretrained(
-        model_cfg["name_or_path"], torch_dtype=dtype,
+        model_cfg["name_or_path"], dtype=dtype,
         attn_implementation=model_cfg.get("attn_implementation", "sdpa"),
     )
 

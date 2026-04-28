@@ -97,21 +97,34 @@ esac
 if command -v uv >/dev/null 2>&1; then
     echo "[bootstrap] using uv ($(uv --version))"
     uv python install "${PYTHON_VERSION}"
+    uv venv --python "${PYTHON_VERSION}"
     if [ -n "$TORCH_INDEX" ]; then
-        # Install torch first from the accel-specific index, then the rest from PyPI.
-        uv venv --python "${PYTHON_VERSION}"
-        uv pip install --index-url "$TORCH_INDEX" "torch>=2.4,<2.7"
-        if [ -n "$EXTRAS" ]; then
-            uv sync --inexact --extra "$EXTRAS"
-        else
-            uv sync --inexact
-        fi
+        # Install torch first from the accel-specific index — its wheel name and
+        # version differ from PyPI (e.g. TheRock ships 2.7.0a0+rocm7.x).
+        uv pip install --index-url "$TORCH_INDEX" "torch>=2.4"
+    fi
+    # Install the rest from PyPI. Use `uv pip install -r requirements.txt`
+    # rather than `uv sync` — sync resolves ALL pyproject extras together
+    # (unsloth pins old transformers, vllm conflicts on ROCm, etc.) and fails
+    # on perfectly fine target platforms. requirements.txt is the curated
+    # cross-platform core.
+    PIP_EXCLUDES=()
+    if [ "$ACCEL" = "rocm" ] || [ "$ACCEL" = "mps" ] || [ "$ACCEL" = "cpu" ]; then
+        # bitsandbytes PyPI wheels are CUDA-only — skip it; trainers fall back to adamw_torch.
+        PIP_EXCLUDES+=("bitsandbytes")
+    fi
+    if [ ${#PIP_EXCLUDES[@]} -gt 0 ]; then
+        grep -vE "^($(IFS=\|; echo "${PIP_EXCLUDES[*]}"))(\b|>|=|<)" requirements.txt > /tmp/ml-intern-requirements.txt
+        REQ_FILE=/tmp/ml-intern-requirements.txt
     else
-        if [ -n "$EXTRAS" ]; then
-            uv sync --extra "$EXTRAS"
-        else
-            uv sync
-        fi
+        REQ_FILE=requirements.txt
+    fi
+    uv pip install -r "$REQ_FILE"
+    if [[ "$EXTRAS" == *dev* ]]; then
+        uv pip install -r requirements-dev.txt
+    fi
+    if [[ "$EXTRAS" == *eval* ]]; then
+        uv pip install "lm-eval>=0.4.10" "inspect-ai>=0.3.149"
     fi
     VENV=".venv"
 else
@@ -126,7 +139,7 @@ else
     source .venv/bin/activate
     pip install --upgrade pip wheel
     if [ -n "$TORCH_INDEX" ]; then
-        pip install --index-url "$TORCH_INDEX" "torch>=2.4,<2.7"
+        pip install --index-url "$TORCH_INDEX" "torch>=2.4"
     fi
     if [[ "$EXTRAS" == *dev* ]]; then
         pip install -r requirements-dev.txt
@@ -176,6 +189,14 @@ if [ "$ACCEL" = "rocm" ] && [ "$ROCM_ARCH" = "gfx1151" ]; then
             echo ""
             echo "# ml-intern-kit rocm hints — gfx1151 / Strix Halo (added by bootstrap.sh)"
             echo "export PYTORCH_HIP_ALLOC_CONF=\${PYTORCH_HIP_ALLOC_CONF:-expandable_segments:True}"
+            # AOTriton flash/efficient SDPA kernels for gfx1151 ship inside the
+            # TheRock torch wheel (libaotriton_v2.so.0.11.2+) but PyTorch keeps
+            # them behind this gate. Without it, sdpa silently falls back to
+            # the math kernel (~20x slower). HF Transformers' "flash_attention_2"
+            # backend imports the upstream `flash_attn` PyPI package which is
+            # CUDA-only — keep `attn_implementation="sdpa"` and let SDPA pick
+            # the AOTriton flash backend.
+            echo "export TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=\${TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL:-1}"
             # Uncomment if you fall off TheRock onto a non-gfx1151 build:
             echo "# export HSA_OVERRIDE_GFX_VERSION=11.5.1"
         } >> "$ACTIVATE"

@@ -4,7 +4,7 @@
 #   Transformers TrainArgs: https://huggingface.co/docs/transformers/main_classes/trainer
 
 model:
-  name_or_path: HuggingFaceTB/SmolLM2-360M
+  name_or_path: HuggingFaceTB/SmolLM2-360M-Instruct
   attn_implementation: sdpa            # set to "flash_attention_2" only after `make flash`
   torch_dtype: bfloat16                # change to float16 on pre-Ampere
 
@@ -29,7 +29,7 @@ train:
   gradient_accumulation_steps: 8       # effective batch = 16
   learning_rate: 2.0e-5
   lr_scheduler_type: cosine
-  warmup_ratio: 0.03
+  warmup_steps: 30                     # transformers 5.2 deprecates warmup_ratio
   weight_decay: 0.0
   optim: adamw_torch                   # use adamw_8bit if bitsandbytes is installed and you OOM
   bf16: true
