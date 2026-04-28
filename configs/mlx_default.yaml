@@ -1,0 +1,28 @@
+# Default recipe for Apple Silicon LoRA fine-tune via mlx-lm.
+# Run with:  python scripts/mlx_finetune.py --config configs/mlx_default.yaml --iters 200
+
+model:
+  # Any HF causal LM. mlx-lm auto-converts safetensors weights on first run.
+  # 4-bit MLX repos load fastest on 16-32GB M-series:
+  #   mlx-community/Llama-3.2-3B-Instruct-4bit
+  #   mlx-community/SmolLM2-1.7B-Instruct-4bit
+  name_or_path: mlx-community/SmolLM2-360M-Instruct-4bit
+
+dataset:
+  # Local JSONL directory. mlx-lm expects {train,valid}.jsonl with either
+  # "text" or "messages" rows (chat).
+  # Generate from a HF dataset with:
+  #   python scripts/dump_mlx_jsonl.py trl-lib/Capybara data/capybara-mlx
+  path: data/capybara-mlx
+
+peft:
+  layers: 16        # number of last transformer layers to attach LoRA to
+
+train:
+  iters: 200
+  batch_size: 4
+  learning_rate: 1.0e-5
+
+output:
+  adapter_path: outputs/mlx-lora
+  fused_path:   outputs/mlx-lora-fused

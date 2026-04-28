@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(bash bootstrap.sh*)",
+      "Bash(make *)",
+      "Bash(uv *)",
+      "Bash(.venv/bin/python *)",
+      "Bash(.venv/bin/pip *)",
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(pip *)",
+      "Bash(accelerate *)",
+      "Bash(hf *)",
+      "Bash(huggingface-cli *)",
+      "Bash(lm_eval *)",
+      "Bash(lm-eval *)",
+      "Bash(wandb *)",
+      "Bash(trackio *)",
+      "Bash(gh search *)",
+      "Bash(gh repo view *)",
+      "Bash(gh api *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(nvidia-smi*)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "WebFetch(domain:huggingface.co)",
+      "WebFetch(domain:hf.co)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:docs.trl.huggingface.co)",
+      "WebFetch(domain:semanticscholar.org)",
+      "WebFetch(domain:api.semanticscholar.org)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(hf jobs run*)",
+      "Bash(hf upload*)",
+      "Bash(huggingface-cli upload*)",
+      "Bash(huggingface-cli repo create*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(git push --force*)",
+      "Bash(huggingface-cli repo delete*)"
+    ]
+  },
+  "env": {
+    "HF_HUB_ENABLE_HF_TRANSFER": "1",
+    "TOKENIZERS_PARALLELISM": "false",
+    "PYTHONUNBUFFERED": "1"
+  }
+}

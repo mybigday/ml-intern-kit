@@ -1,0 +1,115 @@
+[project]
+name = "ml-intern-kit"
+version = "0.1.0"
+description = "Literature-first SLM training stack on the Hugging Face ecosystem"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "Apache-2.0" }
+
+dependencies = [
+    # Core training stack — `torch` here is the generic CPU/CUDA wheel.
+    # For ROCm / CUDA-specific wheels, install via `bootstrap.sh` (sets the
+    # right PyTorch index URL based on accelerator). For Apple Silicon, the
+    # default wheel ships with MPS; the `mlx` extra adds the MLX path.
+    "torch>=2.6",
+    "transformers>=5.5",
+    "trl>=0.28",
+    "peft>=0.18",
+    "accelerate>=1.12",
+    "datasets>=4.7",
+    "evaluate>=0.4.3",
+    "tokenizers>=0.21",
+    "safetensors>=0.5",
+    "sentencepiece>=0.2",
+    "protobuf>=4.25",
+    "einops>=0.8",
+    # bitsandbytes: PyPI ships CUDA-only wheels. The 0.49.x source tree lists
+    # gfx1100/1101/1150/1151/1200/1201 in BNB_ROCM_ARCH but you have to build
+    # with `cmake -DCOMPUTE_BACKEND=hip -DBNB_ROCM_ARCH=gfx<n>`. macOS is
+    # unsupported. So we gate to CUDA Linux only and document the source build.
+    "bitsandbytes>=0.49 ; platform_system == 'Linux' and platform_machine == 'x86_64'",
+
+    # Hub + data + I/O
+    "huggingface-hub[cli,hf_transfer]>=1.11",
+    "hf-transfer>=0.1.8",
+    "pyarrow>=17.0",
+    "pandas>=2.2",
+    "numpy>=1.26,<3",
+    "scipy>=1.13",
+    "scikit-learn>=1.5",
+
+    # Monitoring
+    "trackio>=0.24",
+    "tensorboard>=2.18",
+
+    # Research / agent helpers
+    "requests>=2.32",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+    "pydantic>=2.9",
+    "rich>=13.9",
+    "typer>=0.12",
+    "pyyaml>=6.0.2",
+    "tenacity>=9.0",
+    "arxiv>=2.1",
+
+    # Optional inference helper. PyPI wheels are CUDA-only.
+    # vLLM on gfx1151 requires an APU-guarded fork; install separately.
+    "vllm>=0.18 ; platform_system == 'Linux' and python_version < '3.13' and platform_machine == 'x86_64'",
+]
+
+[project.optional-dependencies]
+eval = [
+    "lm-eval>=0.4.10",
+    "inspect-ai>=0.3.149",
+]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.7",
+    "ipykernel>=6.29",
+    "jupyterlab>=4.2",
+]
+# Heavy / picky extras — install only when you know your CUDA is right.
+flash = [
+    "flash-attn>=2.6 ; platform_system == 'Linux'",
+]
+unsloth = [
+    "unsloth>=2024.10 ; platform_system == 'Linux' and platform_machine == 'x86_64'",
+]
+# Apple Silicon native training/inference via MLX. Use on M-series Macs when
+# you want better throughput than torch-MPS. Trainers under scripts/ stay on
+# torch — see scripts/mlx_finetune.py for the MLX path.
+mlx = [
+    "mlx>=0.30 ; platform_system == 'Darwin' and platform_machine == 'arm64'",
+    "mlx-lm>=0.30 ; platform_system == 'Darwin' and platform_machine == 'arm64'",
+]
+all = ["ml-intern-kit[eval,dev]"]
+
+[project.urls]
+Homepage = "https://github.com/mybigday/ml-intern-kit"
+Repository = "https://github.com/mybigday/ml-intern-kit"
+Issues = "https://github.com/mybigday/ml-intern-kit/issues"
+"ml-intern (origin)" = "https://huggingface.co/spaces/smolagents/ml-intern"
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["scripts*"]
+
+[tool.uv]
+package = false  # this repo is a workspace, not a redistributable package
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]

@@ -1,0 +1,58 @@
+# Default SFT recipe. Override fields with `--set` or by passing --config.
+# Docs:
+#   TRL  SFTConfig:        https://huggingface.co/docs/trl/sft_trainer
+#   Transformers TrainArgs: https://huggingface.co/docs/transformers/main_classes/trainer
+
+model:
+  name_or_path: HuggingFaceTB/SmolLM2-360M
+  attn_implementation: sdpa            # set to "flash_attention_2" only after `make flash`
+  torch_dtype: bfloat16                # change to float16 on pre-Ampere
+
+dataset:
+  name: trl-lib/Capybara               # SFT-ready: contains a `messages` column
+  split: train
+  text_field: messages                 # SFTTrainer auto-handles `messages` if conversational
+  max_seq_length: 2048
+
+peft:                                   # set adapter: null for full FT
+  adapter: lora
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  bias: none
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+train:
+  output_dir: outputs/sft-default
+  num_train_epochs: 1
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 8       # effective batch = 16
+  learning_rate: 2.0e-5
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.03
+  weight_decay: 0.0
+  optim: adamw_torch                   # use adamw_8bit if bitsandbytes is installed and you OOM
+  bf16: true
+  fp16: false
+  gradient_checkpointing: true
+  packing: true
+  eval_strategy: "no"
+
+  # Logging — DON'T change these. The agent grep-parses loss lines.
+  disable_tqdm: true
+  logging_strategy: steps
+  logging_first_step: true
+  logging_steps: 10
+  report_to: [trackio]                  # falls through to ["wandb"] if WANDB_API_KEY is set
+
+  # Hub
+  push_to_hub: false                    # set true and define hub_model_id when shipping
+  hub_model_id: null                    # e.g. "yourname/smollm2-360m-capybara-sft"
+  hub_strategy: every_save
+  save_strategy: steps
+  save_steps: 200
+  save_total_limit: 2
+
+  # Reproducibility
+  seed: 42
+  data_seed: 42

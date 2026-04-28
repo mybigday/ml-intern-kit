@@ -1,0 +1,33 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.local
+.envrc
+.cache/
+.ruff_cache/
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store
+
+# Training artifacts
+runs/
+outputs/
+checkpoints/
+wandb/
+trackio/
+*.safetensors
+*.bin
+
+# Datasets / model caches
+.hf_cache/
+data/
+hf_home/
+
+# Notebooks
+*.ipynb_checkpoints
+
+# Local agent state
+.claude/local/
+session_logs/
