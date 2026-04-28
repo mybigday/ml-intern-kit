@@ -1,7 +1,7 @@
 # AGENTS.md — ml-intern-kit
 
 > Operating manual for any agent (Claude Code, Codex, Cursor, etc.) working in
-> this repo. Distilled from `smolagents/ml-intern`'s system_prompt_v3 and adapted
+> this repo. Distilled from [`huggingface/ml-intern`](https://github.com/huggingface/ml-intern)'s system_prompt_v3 and adapted
 > for a **local-first** training stack with optional Hugging Face Jobs submission.
 >
 > Goal of this repo: a portable foundation you can drop on any machine to

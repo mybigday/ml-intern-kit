@@ -2,9 +2,9 @@
 
 A portable, **literature-first** training environment for small language models
 on the Hugging Face ecosystem. Adapted from
-[`smolagents/ml-intern`](https://huggingface.co/spaces/smolagents/ml-intern) —
-distilled into a local Python project + a set of Claude Code skills you can
-drop on any machine.
+[`huggingface/ml-intern`](https://github.com/huggingface/ml-intern) — distilled
+into a local Python project + a set of Claude Code skills you can drop on any
+machine.
 
 The agent rules (operating manual, pre-flight discipline, error-recovery
 playbook) live in [`AGENTS.md`](./AGENTS.md). Read that first.
@@ -100,6 +100,7 @@ ml-intern-kit/
 
 ## Provenance
 
-The agent rules and pre-flight discipline are adapted from `smolagents/ml-intern`'s
+The agent rules and pre-flight discipline are adapted from
+[`huggingface/ml-intern`](https://github.com/huggingface/ml-intern)'s
 `agent/prompts/system_prompt_v3.yaml` (Apache-2.0). The local stack and skill
 layout are original.

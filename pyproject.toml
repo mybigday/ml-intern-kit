@@ -90,7 +90,7 @@ all = ["ml-intern-kit[eval,dev]"]
 Homepage = "https://github.com/mybigday/ml-intern-kit"
 Repository = "https://github.com/mybigday/ml-intern-kit"
 Issues = "https://github.com/mybigday/ml-intern-kit/issues"
-"ml-intern (origin)" = "https://huggingface.co/spaces/smolagents/ml-intern"
+"ml-intern (origin)" = "https://github.com/huggingface/ml-intern"
 
 [build-system]
 requires = ["setuptools>=64"]
